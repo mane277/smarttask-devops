@@ -20,3 +20,4 @@ docker compose up -d --build
 
 ## CI/CD
 Pipeline Jenkins multibranch : build, tag, push des images vers Docker Hub (voir Jenkinsfile).
+# smarttask-devops
