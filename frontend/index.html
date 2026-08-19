@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8"><title>SmartTask</title></head>
+<body>
+  <h1>SmartTask</h1>
+  <p>Frontend connecté au backend sur /api</p>
+  <ul id="tasks"></ul>
+  <script>
+    fetch('http://localhost:3000/api/tasks')
+      .then(r => r.json())
+      .then(data => {
+        const ul = document.getElementById('tasks');
+        data.forEach(t => {
+          const li = document.createElement('li');
+          li.textContent = t.title;
+          ul.appendChild(li);
+        });
+      });
+  </script>
+</body>
+</html>

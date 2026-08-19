@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+  frontend:
+    build: ./frontend
+    image: smarttask-frontend:1.0
+    container_name: smarttask-frontend
+    ports:
+      - "8081:80"
+    depends_on:
+      - backend
+    networks:
+      - smarttask-net
+
+  backend:
+    build: ./backend
+    image: smarttask-backend:1.0
+    container_name: smarttask-backend
+    environment:
+      DB_HOST: database
+      DB_USER: smarttask
+      DB_PASSWORD: smarttask_pwd
+      DB_NAME: smarttaskdb
+    ports:
+      - "3000:3000"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - smarttask-net
+
+  database:
+    image: postgres:16-alpine
+    container_name: smarttask-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: smarttask
+      POSTGRES_PASSWORD: smarttask_pwd
+      POSTGRES_DB: smarttaskdb
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smarttask"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - smarttask-net
+
+networks:
+  smarttask-net:
+    driver: bridge
+
+volumes:
+  db-data:
