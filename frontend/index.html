@@ -1,21 +1,192 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head><meta charset="UTF-8"><title>SmartTask</title></head>
+<head>
+<meta charset="UTF-8">
+<title>SmartTask</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(135deg, #1F4E79, #3a7bd5);
+    min-height: 100vh;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    padding-top: 60px;
+  }
+  .container {
+    background: #fff;
+    border-radius: 12px;
+    padding: 30px 35px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  }
+  h1 {
+    text-align: center;
+    color: #1F4E79;
+    margin-top: 0;
+  }
+  .subtitle {
+    text-align: center;
+    color: #777;
+    font-size: 13px;
+    margin-bottom: 25px;
+  }
+  form {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  input[type=text] {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    padding: 10px 16px;
+  }
+  form button {
+    background: #1F4E79;
+    color: white;
+  }
+  form button:hover { background: #163a5c; }
+  ul { list-style: none; padding: 0; margin: 0; }
+  li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 8px;
+    border-bottom: 1px solid #eee;
+  }
+  li.done span { text-decoration: line-through; color: #aaa; }
+  li span { flex: 1; font-size: 15px; }
+  li .delete-btn {
+    background: #e74c3c;
+    color: white;
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+  li .delete-btn:hover { background: #c0392b; }
+  .empty { text-align: center; color: #999; padding: 20px 0; font-size: 14px; }
+  .error { color: #e74c3c; font-size: 13px; text-align: center; margin-bottom: 10px; }
+</style>
+</head>
 <body>
-  <h1>SmartTask</h1>
-  <p>Frontend connecté au backend sur /api</p>
-  <ul id="tasks"></ul>
-  <script>
-    fetch('http://localhost:3000/api/tasks')
-      .then(r => r.json())
-      .then(data => {
-        const ul = document.getElementById('tasks');
-        data.forEach(t => {
-          const li = document.createElement('li');
-          li.textContent = t.title;
-          ul.appendChild(li);
-        });
+  <div class="container">
+    <h1>SmartTask</h1>
+    <p class="subtitle">Gestion de tâches — SmartTech DevOps</p>
+
+    <div id="error" class="error" style="display:none;"></div>
+
+    <form id="task-form">
+      <input type="text" id="task-input" placeholder="Nouvelle tâche..." required>
+      <button type="submit">Ajouter</button>
+    </form>
+
+    <ul id="tasks"></ul>
+    <div id="empty" class="empty" style="display:none;">Aucune tâche pour le moment</div>
+  </div>
+
+<script>
+  const API_URL = 'http://' + window.location.hostname + ':3000/api';
+
+  const tasksEl = document.getElementById('tasks');
+  const emptyEl = document.getElementById('empty');
+  const errorEl = document.getElementById('error');
+  const form = document.getElementById('task-form');
+  const input = document.getElementById('task-input');
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = 'block';
+    setTimeout(() => errorEl.style.display = 'none', 3000);
+  }
+
+  async function loadTasks() {
+    try {
+      const res = await fetch(`${API_URL}/tasks`);
+      const tasks = await res.json();
+      renderTasks(tasks);
+    } catch (err) {
+      showError('Impossible de contacter le backend');
+    }
+  }
+
+  function renderTasks(tasks) {
+    tasksEl.innerHTML = '';
+    emptyEl.style.display = tasks.length === 0 ? 'block' : 'none';
+    tasks.forEach(task => {
+      const li = document.createElement('li');
+      if (task.done) li.classList.add('done');
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = task.done;
+      checkbox.addEventListener('change', () => toggleTask(task.id));
+
+      const span = document.createElement('span');
+      span.textContent = task.title;
+
+      const delBtn = document.createElement('button');
+      delBtn.textContent = 'Supprimer';
+      delBtn.className = 'delete-btn';
+      delBtn.addEventListener('click', () => deleteTask(task.id));
+
+      li.appendChild(checkbox);
+      li.appendChild(span);
+      li.appendChild(delBtn);
+      tasksEl.appendChild(li);
+    });
+  }
+
+  async function addTask(title) {
+    try {
+      const res = await fetch(`${API_URL}/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title })
       });
-  </script>
+      if (!res.ok) throw new Error();
+      loadTasks();
+    } catch (err) {
+      showError("Erreur lors de l'ajout de la tâche");
+    }
+  }
+
+  async function toggleTask(id) {
+    try {
+      await fetch(`${API_URL}/tasks/${id}`, { method: 'PUT' });
+      loadTasks();
+    } catch (err) {
+      showError('Erreur lors de la mise à jour');
+    }
+  }
+
+  async function deleteTask(id) {
+    try {
+      await fetch(`${API_URL}/tasks/${id}`, { method: 'DELETE' });
+      loadTasks();
+    } catch (err) {
+      showError('Erreur lors de la suppression');
+    }
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const title = input.value.trim();
+    if (!title) return;
+    addTask(title);
+    input.value = '';
+  });
+
+  loadTasks();
+</script>
 </body>
 </html>
