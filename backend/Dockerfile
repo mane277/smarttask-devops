@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:inexistant-alpine
 WORKDIR /app
 COPY package.json ./
 RUN npm install --production
